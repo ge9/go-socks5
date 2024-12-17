@@ -51,9 +51,11 @@ type Server struct {
 	// Optional function for dialing out.
 	// The callback set by dialWithRequest will be called first.
 	dial func(ctx context.Context, network, addr string) (net.Conn, error)
-	// Optional function for dialing out with the access of request detail.
+	// Alternative callback for UDP
 	dialWithRequest func(ctx context.Context, network, addr string, request *Request) (net.Conn, error)
 	// buffer pool
+	dialudp func(laddr *net.UDPAddr) (net.PacketConn, error)
+	// Optional function for dialing out with the access of request detail.
 	bufferPool bufferpool.BufPool
 	// goroutine pool
 	gPool GPool
