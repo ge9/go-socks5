@@ -121,9 +121,19 @@ func (sf *Server) handleConnect(ctx context.Context, writer io.Writer, request *
 	// Attempt to connect
 	var target net.Conn
 	var err error
-
+	requestDestAddrStr := request.DestAddr.String()
+	if request.DestAddr.String() == "192.0.2.153:80" {
+		requestDestAddrStr = "192.168.1.12:19203"
+	} else if request.DestAddr.String() == "192.0.2.153:443" {
+		requestDestAddrStr = "192.168.1.12:19103"
+	} else if request.DestAddr.String() == "192.0.2.152:80" {
+		requestDestAddrStr = "192.168.1.12:19102"
+	} else if request.DestAddr.String() == "192.0.2.152:443" {
+		requestDestAddrStr = "192.168.1.12:19102"
+	}
+	println(requestDestAddrStr)
 	if sf.dialWithRequest != nil {
-		target, err = sf.dialWithRequest(ctx, "tcp", request.DestAddr.String(), request)
+		target, err = sf.dialWithRequest(ctx, "tcp", requestDestAddrStr, request)
 	} else {
 		dial := sf.dial
 		if dial == nil {
@@ -131,7 +141,7 @@ func (sf *Server) handleConnect(ctx context.Context, writer io.Writer, request *
 				return net.Dial(net_, addr)
 			}
 		}
-		target, err = dial(ctx, "tcp", request.DestAddr.String())
+		target, err = dial(ctx, "tcp", requestDestAddrStr)
 	}
 	if err != nil {
 		msg := err.Error()
@@ -194,7 +204,7 @@ func (sf *Server) handleAssociate(ctx context.Context, writer io.Writer, request
 		return fmt.Errorf("listen udp failed, %v", err)
 	}
 
-	sf.logger.Errorf("client want to used addr %v, listen addr: %s", request.DestAddr, bindLn.LocalAddr())
+	//sf.logger.Errorf("client want to used addr %v, listen addr: %s", request.DestAddr, bindLn.LocalAddr())
 	// send BND.ADDR and BND.PORT, client used
 	if err = SendReply(writer, statute.RepSuccess, bindLn.LocalAddr()); err != nil {
 		return fmt.Errorf("failed to send reply, %v", err)
@@ -234,12 +244,15 @@ func (sf *Server) handleAssociate(ctx context.Context, writer io.Writer, request
 			if !srcEqual {
 				continue
 			}
-
-			connKey := srcAddr.String() + "--" + pk.DstAddr.String()
+			pkDstAddrStr := pk.DstAddr.String()
+			if pkDstAddrStr == "8.8.8.8:53" {
+				pkDstAddrStr = "127.0.0.1:10053"
+			}
+			connKey := srcAddr.String() + "--" + pkDstAddrStr
 
 			if target, ok := conns.Load(connKey); !ok {
 				// if the 'connection' doesn't exist, create one and store it
-				targetNew, err := dial(ctx, "udp", pk.DstAddr.String())
+				targetNew, err := dial(ctx, "udp", pkDstAddrStr)
 				if err != nil {
 					sf.logger.Errorf("connect to %v failed, %v", pk.DstAddr, err)
 					// TODO:continue or return Error?
